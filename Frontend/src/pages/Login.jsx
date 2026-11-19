@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { loginUser } from "../api/auth.api";
+import { loginUser, registerUser } from "../api/auth.api";
 import useAuth from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import "../css/Login.css";
@@ -8,7 +8,10 @@ function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const [isSignup, setIsSignup] = useState(false);
+
   const [formData, setFormData] = useState({
+    name: "",
     email: "",
     password: "",
   });
@@ -21,56 +24,50 @@ function Login() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errorMessage) setErrorMessage("");
+  };
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    // Remove error while typing
-    if (errorMessage) {
-      setErrorMessage("");
-    }
+  const switchMode = () => {
+    setIsSignup((prev) => !prev);
+    setErrorMessage("");
+    setSuccessMessage("");
+    setFormData({ name: "", email: "", password: "" });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     setErrorMessage("");
     setSuccessMessage("");
     setLoading(true);
 
     try {
-      console.log("LOGIN REQUEST:", {
-        email: formData.email,
-      });
-
-      const response = await loginUser(formData);
-
-      console.log("LOGIN RESPONSE:", response);
+      let response;
+      if (isSignup) {
+        response = await registerUser(formData);
+      } else {
+        response = await loginUser(formData);
+      }
 
       login(response.data);
 
-      setSuccessMessage("Login successful. Redirecting...");
+      setSuccessMessage(
+        isSignup ? "Account created! Redirecting..." : "Login successful. Redirecting..."
+      );
 
-      if (rememberMe) {
+      if (!isSignup && rememberMe) {
         localStorage.setItem("rememberMe", "true");
       } else {
         localStorage.removeItem("rememberMe");
       }
 
-      setTimeout(() => {
-        navigate("/home");
-      }, 500);
+      setTimeout(() => navigate("/home"), 500);
     } catch (error) {
-      console.error("LOGIN FRONTEND ERROR:", error);
-
       const backendMessage =
         error.response?.data?.message ||
         error.response?.data?.error ||
         error.message ||
-        "Unable to login. Please try again.";
-
+        "Something went wrong. Please try again.";
       setErrorMessage(backendMessage);
     } finally {
       setLoading(false);
@@ -116,7 +113,6 @@ function Login() {
           <div className="inventro-feature-list">
             <div className="inventro-feature-item">
               <div className="inventro-feature-icon">✓</div>
-
               <div>
                 <h3>Keep Track</h3>
                 <p>Monitor your stock in real-time</p>
@@ -125,7 +121,6 @@ function Login() {
 
             <div className="inventro-feature-item">
               <div className="inventro-feature-icon">↗</div>
-
               <div>
                 <h3>Boost Sales</h3>
                 <p>Make better business decisions</p>
@@ -134,7 +129,6 @@ function Login() {
 
             <div className="inventro-feature-item">
               <div className="inventro-feature-icon">♙</div>
-
               <div>
                 <h3>Grow Faster</h3>
                 <p>Serve your customers better</p>
@@ -172,17 +166,16 @@ function Login() {
           </div>
 
           <div className="inventro-login-heading">
-            <h1>Welcome Back</h1>
-            <p>Log in to your account to continue</p>
+            <h1>{isSignup ? "Create Account" : "Welcome Back"}</h1>
+            <p>{isSignup ? "Sign up to get started" : "Log in to your account to continue"}</p>
           </div>
 
           {/* ERROR */}
           {errorMessage && (
             <div className="inventro-login-error">
               <div className="inventro-error-icon">!</div>
-
               <div>
-                <strong>Login failed</strong>
+                <strong>{isSignup ? "Sign up failed" : "Login failed"}</strong>
                 <p>{errorMessage}</p>
               </div>
             </div>
@@ -197,17 +190,31 @@ function Login() {
           )}
 
           <form onSubmit={handleSubmit}>
+            {/* NAME — signup only */}
+            {isSignup && (
+              <div className="inventro-form-group">
+                <label htmlFor="inventro-name">Full Name</label>
+                <div className="inventro-input-wrapper">
+                  <span className="inventro-input-icon">👤</span>
+                  <input
+                    id="inventro-name"
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Enter your name"
+                    autoComplete="name"
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
             {/* EMAIL */}
             <div className="inventro-form-group">
-              <label htmlFor="inventro-email">
-                Email
-              </label>
-
+              <label htmlFor="inventro-email">Email</label>
               <div className="inventro-input-wrapper">
-                <span className="inventro-input-icon">
-                  ✉
-                </span>
-
+                <span className="inventro-input-icon">✉</span>
                 <input
                   id="inventro-email"
                   type="email"
@@ -223,75 +230,58 @@ function Login() {
 
             {/* PASSWORD */}
             <div className="inventro-form-group">
-              <label htmlFor="inventro-password">
-                Password
-              </label>
-
+              <label htmlFor="inventro-password">Password</label>
               <div className="inventro-input-wrapper">
-                <span className="inventro-input-icon">
-                  🔒
-                </span>
-
+                <span className="inventro-input-icon">🔒</span>
                 <input
                   id="inventro-password"
                   type={showPassword ? "text" : "password"}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="Enter your password"
-                  autoComplete="current-password"
+                  placeholder={isSignup ? "Min. 6 characters" : "Enter your password"}
+                  autoComplete={isSignup ? "new-password" : "current-password"}
                   required
                 />
-
                 <button
                   type="button"
                   className="inventro-password-toggle"
-                  onClick={() =>
-                    setShowPassword((prev) => !prev)
-                  }
-                  aria-label={
-                    showPassword
-                      ? "Hide password"
-                      : "Show password"
-                  }
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? "◉" : "◌"}
                 </button>
               </div>
             </div>
 
-            {/* OPTIONS */}
-            <div className="inventro-login-options">
-              <label className="inventro-remember">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) =>
-                    setRememberMe(e.target.checked)
+            {/* OPTIONS — login only */}
+            {!isSignup && (
+              <div className="inventro-login-options">
+                <label className="inventro-remember">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                  />
+                  <span className="inventro-checkmark">✓</span>
+                  <span>Remember me</span>
+                </label>
+
+                <button
+                  type="button"
+                  className="inventro-forgot-button"
+                  onClick={() =>
+                    setErrorMessage(
+                      "Please contact your administrator to reset your password."
+                    )
                   }
-                />
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
 
-                <span className="inventro-checkmark">
-                  ✓
-                </span>
-
-                <span>Remember me</span>
-              </label>
-
-              <button
-                type="button"
-                className="inventro-forgot-button"
-                onClick={() => {
-                  setErrorMessage(
-                    "Please contact your administrator to reset your password."
-                  );
-                }}
-              >
-                Forgot password?
-              </button>
-            </div>
-
-            {/* LOGIN BUTTON */}
+            {/* SUBMIT BUTTON */}
             <button
               type="submit"
               className="inventro-login-button"
@@ -300,11 +290,11 @@ function Login() {
               {loading ? (
                 <>
                   <span className="inventro-spinner"></span>
-                  Logging in...
+                  {isSignup ? "Creating account..." : "Logging in..."}
                 </>
               ) : (
                 <>
-                  Log In
+                  {isSignup ? "Create Account" : "Log In"}
                   <span>→</span>
                 </>
               )}
@@ -318,9 +308,17 @@ function Login() {
           </div>
 
           <p className="inventro-admin-text">
-            Don't have an account?
-            <span>
-              Contact your administrator
+            {isSignup ? "Already have an account?" : "Don't have an account?"}
+            <span
+              onClick={switchMode}
+              style={{
+                cursor: "pointer",
+                marginLeft: "6px",
+                fontWeight: 600,
+                textDecoration: "underline",
+              }}
+            >
+              {isSignup ? "Log In" : "Sign Up"}
             </span>
           </p>
         </div>
