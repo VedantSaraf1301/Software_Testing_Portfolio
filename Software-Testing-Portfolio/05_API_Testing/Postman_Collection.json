@@ -1,0 +1,246 @@
+{
+  "info": {
+    "_postman_id": "inventro-api-collection",
+    "name": "Inventro — API Test Collection",
+    "description": "Complete Postman collection for testing the Inventro Inventory Manager REST API.\n\nBase URL: http://localhost:9696/api\n\nSetup:\n1. Set environment variable: base_url = http://localhost:9696/api\n2. Run 'Login' first — token is auto-saved\n3. All protected routes use {{token}} automatically",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:9696/api" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Register — Valid",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"John Doe\", \"email\": \"john@test.com\", \"password\": \"pass123\"}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                "pm.test('Has token', () => { const d = pm.response.json(); pm.expect(d.data.token).to.exist; pm.environment.set('token', d.data.token); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Register — Duplicate Email",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"John Doe\", \"email\": \"john@test.com\", \"password\": \"pass123\"}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                "pm.test('Error message present', () => { const d = pm.response.json(); pm.expect(d.message).to.include('already exists'); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Register — Missing Name",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/register",
+            "body": { "mode": "raw", "raw": "{\"email\": \"a@b.com\", \"password\": \"pass123\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status is 400', () => pm.response.to.have.status(400));"] } }]
+        },
+        {
+          "name": "Register — Short Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/register",
+            "body": { "mode": "raw", "raw": "{\"name\": \"Test\", \"email\": \"short@test.com\", \"password\": \"abc\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status is 400', () => pm.response.to.have.status(400));"] } }]
+        },
+        {
+          "name": "Login — Valid",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/login",
+            "body": { "mode": "raw", "raw": "{\"email\": \"john@test.com\", \"password\": \"pass123\"}" }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                "pm.test('Token returned', () => { const d = pm.response.json(); pm.expect(d.data.token).to.exist; pm.environment.set('token', d.data.token); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Login — Wrong Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/login",
+            "body": { "mode": "raw", "raw": "{\"email\": \"john@test.com\", \"password\": \"wrongpass\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status is 400', () => pm.response.to.have.status(400));"] } }]
+        },
+        {
+          "name": "Profile — With Token",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/auth/profile"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Profile — No Token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/auth/profile"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status is 401', () => pm.response.to.have.status(401));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "2. Products",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/product"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Get Products — No Token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/product"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status is 401', () => pm.response.to.have.status(401));"] } }]
+        },
+        {
+          "name": "Create Product — Valid",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/product",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"Test Product\", \"category\": \"{{categoryId}}\", \"costPrice\": 100, \"sellingPrice\": 150, \"quantity\": 10}"
+            }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status is 201', () => pm.response.to.have.status(201));"] } }]
+        },
+        {
+          "name": "Create Product — Negative Price (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/product",
+            "body": { "mode": "raw", "raw": "{\"name\": \"Bad Product\", \"costPrice\": -100, \"sellingPrice\": 150, \"quantity\": 10}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status is 400', () => pm.response.to.have.status(400));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "3. Sales",
+      "item": [
+        {
+          "name": "Get All Sales",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/sale"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Create Sale — Empty Items (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/sale",
+            "body": { "mode": "raw", "raw": "{\"customer\": \"{{customerId}}\", \"items\": [], \"subtotal\": 0, \"totalAmount\": 0, \"paidAmount\": 0, \"dueAmount\": 0, \"paymentStatus\": \"UNPAID\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status is 400', () => pm.response.to.have.status(400));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "4. Payments",
+      "item": [
+        {
+          "name": "Get All Payments",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/payments"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Create Payment — Amount Zero (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/payments",
+            "body": { "mode": "raw", "raw": "{\"customer\": \"{{customerId}}\", \"amount\": 0, \"paymentMethod\": \"CASH\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status is 400', () => pm.response.to.have.status(400));"] } }]
+        },
+        {
+          "name": "Create Payment — Invalid Method (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/payments",
+            "body": { "mode": "raw", "raw": "{\"customer\": \"{{customerId}}\", \"amount\": 500, \"paymentMethod\": \"CRYPTO\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status is 400', () => pm.response.to.have.status(400));"] } }]
+        }
+      ]
+    }
+  ]
+}
