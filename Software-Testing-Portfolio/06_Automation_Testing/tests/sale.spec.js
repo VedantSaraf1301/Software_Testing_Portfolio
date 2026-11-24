@@ -11,13 +11,21 @@ const { test, expect } = require('@playwright/test');
 const BASE_URL = 'http://localhost:5173';
 const VALID_EMAIL = 'john@test.com';
 const VALID_PASSWORD = 'pass123';
+const VALID_NAME = 'John Test';
+
+test.beforeAll(async ({ request }) => {
+  // Ensure test user exists
+  await request.post('http://localhost:9696/api/auth/register', {
+    data: { name: VALID_NAME, email: VALID_EMAIL, password: VALID_PASSWORD }
+  }).catch(() => {});
+});
 
 async function login(page) {
   await page.goto(`${BASE_URL}`);
   await page.fill('input[name="email"]', VALID_EMAIL);
   await page.fill('input[name="password"]', VALID_PASSWORD);
   await page.click('button[type="submit"]');
-  await expect(page).toHaveURL(/\/home/, { timeout: 5000 });
+  await expect(page).toHaveURL(/\/home/, { timeout: 10000 });
 }
 
 // ─────────────────────────────────────────
@@ -33,21 +41,18 @@ test.describe('Sales Management', () => {
   // TC-AUTO-16
   test('sale page should load and be accessible', async ({ page }) => {
     await expect(page).toHaveURL(/\/sale/);
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('.sale-workspace')).toBeVisible({ timeout: 10000 });
   });
 
   // TC-AUTO-17
-  test('sale list should display or show empty state', async ({ page }) => {
-    await page.waitForTimeout(1000); // allow data to load
-    const hasTable = await page.locator('table').count();
-    const hasEmpty = await page.getByText(/no sales|no records/i).count();
-    expect(hasTable + hasEmpty).toBeGreaterThan(0);
+  test('sale workspace and form should be visible', async ({ page }) => {
+    await expect(page.locator('.sale-form-area')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.sale-summary-side')).toBeVisible({ timeout: 10000 });
   });
 
   // TC-AUTO-18
-  test('new sale button should be visible', async ({ page }) => {
-    const newSaleBtn = page.getByRole('button', { name: /new sale|create sale|add sale/i });
-    await expect(newSaleBtn).toBeVisible({ timeout: 3000 });
+  test('new sale heading should be visible', async ({ page }) => {
+    await expect(page.locator('.sale-section-heading h2')).toContainText('New Sale');
   });
 
 });

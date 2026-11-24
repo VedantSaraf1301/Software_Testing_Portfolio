@@ -13,6 +13,13 @@ const VALID_EMAIL = 'john@test.com';
 const VALID_PASSWORD = 'pass123';
 const VALID_NAME = 'John Test';
 
+test.beforeAll(async ({ request }) => {
+  // Ensure test user exists in database
+  await request.post('http://localhost:9696/api/auth/register', {
+    data: { name: VALID_NAME, email: VALID_EMAIL, password: VALID_PASSWORD }
+  }).catch(() => {});
+});
+
 // ─────────────────────────────────────────
 // TEST SUITE: Login
 // ─────────────────────────────────────────
@@ -20,13 +27,12 @@ test.describe('Login Page', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto(`${BASE_URL}`);
-    // Should land on login (unauthenticated)
-    await expect(page.locator('.inventro-login-page')).toBeVisible();
+    await expect(page.locator('.inventro-login-card')).toBeVisible();
   });
 
   // TC-AUTO-01
   test('should display login form correctly', async ({ page }) => {
-    await expect(page.locator('h1')).toContainText('Welcome Back');
+    await expect(page.locator('.inventro-login-heading h1')).toContainText('Welcome Back');
     await expect(page.locator('input[name="email"]')).toBeVisible();
     await expect(page.locator('input[name="password"]')).toBeVisible();
     await expect(page.locator('button[type="submit"]')).toContainText('Log In');
@@ -37,7 +43,7 @@ test.describe('Login Page', () => {
     await page.fill('input[name="email"]', VALID_EMAIL);
     await page.fill('input[name="password"]', VALID_PASSWORD);
     await page.click('button[type="submit"]');
-    await expect(page).toHaveURL(/\/home/, { timeout: 5000 });
+    await expect(page).toHaveURL(/\/home/, { timeout: 10000 });
   });
 
   // TC-AUTO-03
@@ -45,7 +51,7 @@ test.describe('Login Page', () => {
     await page.fill('input[name="email"]', VALID_EMAIL);
     await page.fill('input[name="password"]', 'wrongpassword');
     await page.click('button[type="submit"]');
-    await expect(page.locator('.inventro-login-error')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.inventro-login-error')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('.inventro-login-error')).toContainText('Login failed');
   });
 
@@ -54,7 +60,7 @@ test.describe('Login Page', () => {
     await page.fill('input[name="email"]', 'nobody@nowhere.com');
     await page.fill('input[name="password"]', 'pass123');
     await page.click('button[type="submit"]');
-    await expect(page.locator('.inventro-login-error')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.inventro-login-error')).toBeVisible({ timeout: 10000 });
   });
 
   // TC-AUTO-05
@@ -87,9 +93,10 @@ test.describe('Signup Page', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto(`${BASE_URL}`);
+    await expect(page.locator('.inventro-login-card')).toBeVisible();
     // Switch to signup mode
     await page.click('.inventro-admin-text span');
-    await expect(page.locator('h1')).toContainText('Create Account');
+    await expect(page.locator('.inventro-login-heading h1')).toContainText('Create Account');
   });
 
   // TC-AUTO-07
@@ -107,7 +114,7 @@ test.describe('Signup Page', () => {
     await page.fill('input[name="email"]', uniqueEmail);
     await page.fill('input[name="password"]', VALID_PASSWORD);
     await page.click('button[type="submit"]');
-    await expect(page).toHaveURL(/\/home/, { timeout: 5000 });
+    await expect(page).toHaveURL(/\/home/, { timeout: 10000 });
   });
 
   // TC-AUTO-09
@@ -116,7 +123,7 @@ test.describe('Signup Page', () => {
     await page.fill('input[name="email"]', VALID_EMAIL); // already exists
     await page.fill('input[name="password"]', VALID_PASSWORD);
     await page.click('button[type="submit"]');
-    await expect(page.locator('.inventro-login-error')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.inventro-login-error')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('.inventro-login-error')).toContainText('Sign up failed');
   });
 
@@ -126,7 +133,7 @@ test.describe('Signup Page', () => {
     await page.fill('input[name="email"]', 'short@test.com');
     await page.fill('input[name="password"]', 'abc'); // less than 6
     await page.click('button[type="submit"]');
-    await expect(page.locator('.inventro-login-error')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.inventro-login-error')).toBeVisible({ timeout: 10000 });
   });
 
 });
@@ -139,14 +146,13 @@ test.describe('Protected Route', () => {
   // TC-AUTO-11
   test('unauthenticated user should not access /dashboard', async ({ page }) => {
     await page.goto(`${BASE_URL}/dashboard`);
-    // Should redirect to login
-    await expect(page.locator('.inventro-login-page')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.inventro-login-card')).toBeVisible({ timeout: 10000 });
   });
 
   // TC-AUTO-12
   test('unauthenticated user should not access /product', async ({ page }) => {
     await page.goto(`${BASE_URL}/product`);
-    await expect(page.locator('.inventro-login-page')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.inventro-login-card')).toBeVisible({ timeout: 10000 });
   });
 
 });

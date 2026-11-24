@@ -1,0 +1,19 @@
+{
+  "name": "inventro-automation-tests",
+  "version": "1.0.0",
+  "description": "Playwright UI + Jest API automation tests for Inventro",
+  "scripts": {
+    "test:ui": "playwright test",
+    "test:api": "jest tests/auth.api.test.js --verbose",
+    "test:all": "npm run test:api && npm run test:ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "latest",
+    "jest": "latest",
+    "supertest": "latest"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testTimeout": 15000
+  }
+}
